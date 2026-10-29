@@ -10,7 +10,7 @@ if(path.dirname(output)!==path.resolve(root)||path.basename(output)!=='dist')thr
 if(fs.existsSync(output))fs.rmSync(output,{recursive:true,force:true});
 fs.cpSync(path.join(root,'public'),output,{recursive:true});
 const rewrite=s=>s.replace(/(["'`(])\/(assets|vendor)\//g,(_,quote,dir)=>quote+base+dir+'/')
- .replace(/((?:href|src)=["'])\/(styles\.css|motion\.css|app\.js)(["'])/g,(_,attribute,file,quote)=>attribute+base+file+quote)
+ .replace(/((?:href|src)=["'])\/(styles\.css|motion\.css|app\.js)(\?[^"']*)?(["'])/g,(_,attribute,file,query,quote)=>attribute+base+file+(query||'')+quote)
  .replace(/href="\/"/g,'href="'+base+'"');
 let files=0;
 function walk(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const target=path.join(dir,entry.name);if(entry.isDirectory())walk(target);else{files++;if(/\.(html|css|js|json|svg)$/.test(entry.name)&&!path.relative(output,target).startsWith('vendor'+path.sep)){fs.writeFileSync(target,rewrite(fs.readFileSync(target,'utf8')));}}}}
