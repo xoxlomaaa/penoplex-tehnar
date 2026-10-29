@@ -47,3 +47,6 @@ dialog::backdrop{animation:backdrop-in .28s ease-out}
 .system-footer{padding-bottom:20px}.poster>img{filter:none}
 @media(max-width:1100px) and (min-width:761px){.information{padding:30px 28px;gap:26px;min-height:430px}.about-copy h2{font-size:34px}.about-copy>p{font-size:13px}}
 @media(max-width:760px){.information{min-height:0;padding:24px 18px 28px;gap:22px;overflow:hidden}.about-visual{order:-1;max-width:480px}.about-copy h2{font-size:26px}.product-facts{grid-template-columns:1fr}}
+
+/* Clip decorative light without creating a hidden keyboard scroll container. */
+.detail-panel{overflow:clip}
