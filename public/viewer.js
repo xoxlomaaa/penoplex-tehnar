@@ -4,16 +4,25 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { createStudioLighting } from "./studio-lighting.js";
 const STACK = ["12", "11", "10", "8", "7", "9", "6", "5", "4", "3", "2", "1"];
+const STILOBAT_SERIES = new Set(["stilobat-v2", "invers-green", "invers-way", "invers-sport"]);
+// The same framing box covers the assembled L3 format, including turf and rebar.
+const SERIES_FRAME = new THREE.Box3(
+  new THREE.Vector3(-2.46, 0, -2.46),
+  new THREE.Vector3(2.46, 1.29, 2.46),
+);
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 export class SystemViewer extends EventTarget {
-  constructor(host) {
+  constructor(host, system) {
     super();
     this.host = host;
     this.groups = new Map();
     this.bases = new Map();
     this.materials = new Set();
     this.ready = false;
-    this.selected = "3";
+    this.selected = system?.defaultLayer ?? "3";
+    this.layerIds = system?.layers ?? STACK;
+    this.stack = system?.stack ?? STACK;
+    this.assembledFrame = STILOBAT_SERIES.has(system?.id) ? SERIES_FRAME : null;
     this.explode = 0;
     this.explodeTarget = 0;
     this.isolated = false;
@@ -184,37 +193,32 @@ export class SystemViewer extends EventTarget {
       this.fit(false);
     this.invalidate();
   }
-  async load(url, onProgress, signal) {
+  async load(response, onProgress, signal, expectedBytes) {
     this.draco = new DRACOLoader();
     this.draco.setDecoderPath("/vendor/three/addons/libs/draco/gltf/");
     this.draco.setWorkerLimit(2);
     const loader = new GLTFLoader();
     loader.setDRACOLoader(this.draco);
-    const response = await fetch(url, { signal });
     if (!response.ok)
       throw new Error(
         "Не удалось загрузить файл модели (HTTP " + response.status + ").",
       );
-    const total = Number(response.headers.get("content-length")) || 59784176,
-      reader = response.body.getReader(),
-      chunks = [];
+    const total = expectedBytes || Number(response.headers.get("content-length"));
+    const reader = response.body.getReader();
+    const bytes = new Uint8Array(total);
     let loaded = 0;
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      chunks.push(value);
+      if (loaded + value.length > total) throw new Error("Размер файла модели не совпадает с ожидаемым.");
+      bytes.set(value, loaded);
       loaded += value.length;
       onProgress(Math.min(0.9, (loaded / total) * 0.9));
     }
     if (signal?.aborted) throw new DOMException("Отменено", "AbortError");
-    const bytes = new Uint8Array(loaded);
-    let offset = 0;
-    for (const c of chunks) {
-      bytes.set(c, offset);
-      offset += c.length;
-    }
+    if (loaded !== total) throw new Error("Файл модели загружен не полностью.");
     onProgress(0.92);
-    const gltf = await loader.parseAsync(bytes.buffer, "/assets/models/");
+    const gltf = await loader.parseAsync(bytes.buffer, new URL(".", response.url).href);
     if (signal?.aborted || this.disposed) {
       gltf.scene.traverse((o) => {
         o.geometry?.dispose();
@@ -243,10 +247,10 @@ export class SystemViewer extends EventTarget {
         }
       }
     });
-    if (this.groups.size !== 12)
-      throw new Error("В файле не найдены все 12 слоёв.");
+    if (this.groups.size !== this.layerIds.length || this.layerIds.some((id) => !this.groups.has(id)))
+      throw new Error("В модели отсутствуют слои системы.");
     this.injectors = [];
-    this.groups.get("9").traverse((o) => {
+    this.groups.get("9")?.traverse((o) => {
       if (o.isMesh && o.userData.hostLayerId)
         this.injectors.push({
           object: o,
@@ -255,6 +259,15 @@ export class SystemViewer extends EventTarget {
         });
     });
     this.root.updateMatrixWorld(true);
+    const base = this.groups.get(this.layerIds.at(-1));
+    const footprint = new THREE.Box3().setFromObject(base);
+    const size = footprint.getSize(new THREE.Vector3());
+    const center = footprint.getCenter(new THREE.Vector3());
+    const shadedFraction = 0.75;
+    const { width, height } = this.contactShadow.geometry.parameters;
+    this.contactShadow.scale.set(size.x / (width * shadedFraction), size.z / (height * shadedFraction), 1);
+    this.contactShadow.position.x = center.x;
+    this.contactShadow.position.z = center.z;
     this.ready = true;
     this.select(this.selected);
     this.fit(false);
@@ -289,20 +302,11 @@ export class SystemViewer extends EventTarget {
   }
   select(id) {
     if (!this.groups.has(id) && this.ready) return;
-    const changed = this.selected !== id;
     this.selected = id;
     if (!this.ready) return;
     if (this.isolated) this.setIsolation(true);
     this.host.dataset.focusLayer = id;
     this.host.dataset.focusSettled = "true";
-    if (changed) {
-      this.pin.getAnimations().forEach((a) => a.cancel());
-      if (!reduced())
-        this.pin.animate([{ opacity: 0.25 }, { opacity: 1 }], {
-          duration: 420,
-          easing: "ease-out",
-        });
-    }
     this.updateSelection();
     this.invalidate();
   }
@@ -315,7 +319,7 @@ export class SystemViewer extends EventTarget {
     this.invalidate();
   }
   shift(id) {
-    return STACK.indexOf(id) * 0.11 * this.explode;
+    return this.stack.indexOf(id) * 0.11 * this.explode;
   }
   applyExplode() {
     if (!this.ready) return;
@@ -359,6 +363,11 @@ export class SystemViewer extends EventTarget {
       group || (this.isolated ? this.groups.get(this.selected) : this.root),
     );
   }
+  framingBounds() {
+    if (this.assembledFrame && !this.isolated && !this.explode && !this.explodeTarget)
+      return this.assembledFrame;
+    return this.bounds();
+  }
   distance(box, factor = 1, direction) {
     const dir =
         direction ||
@@ -395,7 +404,7 @@ export class SystemViewer extends EventTarget {
   }
   fit(animated = true) {
     if (!this.ready) return;
-    const box = this.bounds(),
+    const box = this.framingBounds(),
       target = box.getCenter(new THREE.Vector3()),
       dir = new THREE.Vector3(-7.8, 5.8, 7.2).normalize();
     this.move(
@@ -406,7 +415,7 @@ export class SystemViewer extends EventTarget {
   }
   preset(name) {
     if (!this.ready) return;
-    const box = this.bounds(),
+    const box = this.framingBounds(),
       target = box.getCenter(new THREE.Vector3()),
       dirs = {
         perspective: [-7.8, 5.8, 7.2],
@@ -466,6 +475,9 @@ export class SystemViewer extends EventTarget {
     if (Math.abs(direction.x) > Math.abs(direction.z))
       point.x = direction.x > 0 ? box.max.x : box.min.x;
     else point.z = direction.z > 0 ? box.max.z : box.min.z;
+    const group = this.groups.get(this.selected);
+    const anchor = group?.userData.pinAnchor;
+    if (Array.isArray(anchor) && direction.z > 0) group.localToWorld(point.fromArray(anchor));
     point.project(this.camera);
     this.pin.hidden =
       !this.ready ||
@@ -511,7 +523,7 @@ export class SystemViewer extends EventTarget {
     }
     if (this.transition) {
       const t = this.transition,
-        a = t.duration
+        a = t.duration && !reduced()
           ? Math.min(1, (performance.now() - t.start) / t.duration)
           : 1,
         e = a * a * (3 - 2 * a);

@@ -1,0 +1,25 @@
+Модели автомобилей в сцене ИНВЕРС WAY
+
+Tesla 2018 Model 3 — Ameer Studio
+https://sketchfab.com/3d-models/tesla-2018-model-3-5ef9b845aaf44203b6d04e2c677e444f
+
+2005 Ford Mustang GT — Ricy
+https://sketchfab.com/3d-models/2005-ford-mustang-gt-26b6b60cf2804370ac3c64424242dc1f
+
+BMW M4 CSL 2023 — Black Snow
+https://sketchfab.com/3d-models/bmw-m4-csl-2023-26d05968e63b4fc28205cbb9abb0ea41
+
+Три модели распространяются по лицензии CC BY 4.0.
+https://creativecommons.org/licenses/by/4.0/
+Для сцены адаптированы масштаб, положение и окраска кузовов. В модели BMW удалены элементы за габаритами автомобиля.
+
+Dacia Duster 2010 — OpenX Assets, Dogan Ulus (2025). Исходная модель — razor24 (2019).
+https://sketchfab.com/razor24
+Volvo V60 Polestar 2013 — OpenX Assets, Dogan Ulus (2025). Исходная модель — myedsu (2023).
+https://sketchfab.com/myedsu
+
+Обе модели из выпуска OpenX Assets 20250821 распространяются по лицензиям MPL 2.0 и CC BY 4.0.
+https://github.com/vevalabs/openx-assets/releases/tag/20250821
+https://github.com/vevalabs/openx-assets/tree/20250821/src/vehicles/main
+https://www.mozilla.org/MPL/2.0/
+Для сцены изменены положение, цвет кузова и остекление.

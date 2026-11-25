@@ -1,13 +1,15 @@
-export const defaults = () => ({
-  layer: "3",
+export const defaults = (system) => ({
+  layer: system?.defaultLayer ?? "3",
   explode: 0,
   isolate: false,
   camera: null,
 });
-export function decodeState(hash = "") {
+export function decodeState(hash = "", system) {
   const p = new URLSearchParams(hash.replace(/^#/, "")),
-    s = defaults();
-  if (/^(?:[1-9]|1[0-2])$/.test(p.get("layer"))) s.layer = p.get("layer");
+    s = defaults(system);
+  if (system?.id && p.has("system") && p.get("system") !== system.id) return s;
+  const layer = p.get("layer");
+  if (system?.layers ? system.layers.includes(layer) : /^(?:[1-9]|1[0-2])$/.test(layer)) s.layer = layer;
   const x = Number(p.get("explode"));
   if (Number.isFinite(x)) s.explode = Math.min(1, Math.max(0, x));
   s.isolate = p.get("isolate") === "1";
@@ -23,9 +25,9 @@ export function decodeState(hash = "") {
     s.camera = { position: a.slice(0, 3), target: a.slice(3, 6), aspect: a[6] };
   return s;
 }
-export function encodeState(s) {
+export function encodeState(s, system) {
   const p = new URLSearchParams({
-    system: "stilobat-v2",
+    system: system?.id ?? "stilobat-v2",
     layer: s.layer,
     explode: String(Math.round(s.explode * 100) / 100),
   });

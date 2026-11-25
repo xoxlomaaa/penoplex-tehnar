@@ -1,25 +1,60 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import {fileURLToPath} from 'node:url';
-import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
-import {checkModelAssets} from './check-assets.mjs';
-import {system,layers,products,documents} from '../public/content.js';
-process.chdir(fileURLToPath(new URL('..',import.meta.url)));
-for(const f of [...fs.readdirSync('public').filter(name=>name.endsWith('.js')).map(name=>'public/'+name)])execFileSync(process.execPath,['--check',f]);
-const meta=JSON.parse(fs.readFileSync('public'+system.metadata,'utf8'));
-assert.equal(layers.length,12);assert.equal(new Set(layers.map(l=>l.id)).size,12);
-assert.deepEqual(layers.map(l=>l.id),meta.layers.map(l=>l.id));
-for(const l of layers)if(l.product)assert.ok(products[l.product]);
-for(const p of Object.values(products)){assert.ok(p.source.startsWith('https://'));if(p.image)assert.ok(fs.existsSync('public'+p.image));for(const id of p.documents)assert.ok(documents[id]);}
-for(const d of Object.values(documents)){const b=fs.readFileSync('public'+d.url);assert.equal(b.subarray(0,4).toString(),'%PDF');}
-const model=fs.readFileSync('public'+system.model);
-assert.equal(model.length,system.modelBytes);
-assert.equal(createHash('sha256').update(model).digest('hex'),system.modelSha256);
-checkModelAssets(process.cwd());
-assert.equal(meta.revision,'2026-10-30-studio-L3');
-assert.equal(meta.studio.rearCornersFilled,true);
-for(const url of [system.render,system.objectMask]){const header=fs.readFileSync('public'+url).subarray(0,26);assert.equal(header.subarray(1,4).toString(),'PNG');assert.equal(header.readUInt32BE(16),2500);assert.equal(header.readUInt32BE(20),2500);}
-assert.ok(fs.existsSync('public/vendor/three/addons/libs/draco/gltf/draco_decoder.wasm'));
-console.log('PASS: JS syntax, 12 semantic layers, product/document refs, PDF signatures, optimized L3 hashes and unchanged geometry, 2500px render and mask, Draco.');
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { readFile, readdir } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { systems, loadSystem } from "../public/systems.js";
+import { modelAssets } from "../public/model-assets.js";
+
+const root = fileURLToPath(new URL("../", import.meta.url));
+const source = path.join(root, "public");
+const current = JSON.parse(await readFile(path.join(root, "dist/current.json"), "utf8"));
+const site = path.join(root, "dist", current.release);
+const assets = path.join(site, "static", current.release);
+for (const file of await readdir(source)) {
+  if (file.endsWith(".js")) execFileSync(process.execPath, ["--check", path.join(source, file)]);
+}
+const checkModel = async (asset, expectedLayerIds) => {
+  const binary = await readFile(path.join(assets, asset.url.slice(1)));
+  assert.equal(binary.length, asset.bytes);
+  assert.equal(createHash("sha256").update(binary).digest("hex"), asset.sha256);
+  assert.equal(binary.readUInt32LE(0), 0x46546c67);
+  assert.equal(binary.readUInt32LE(8), binary.length);
+  const jsonLength = binary.readUInt32LE(12);
+  const gltf = JSON.parse(binary.subarray(20, 20 + jsonLength));
+  assert.ok(gltf.extensionsRequired.includes("KHR_draco_mesh_compression"));
+  assert.ok(gltf.extensionsRequired.includes("EXT_texture_webp"));
+  for (const view of gltf.bufferViews) assert.ok((view.byteOffset || 0) + view.byteLength <= binary.length - 28 - jsonLength);
+  const layerIds = gltf.nodes.map(node => /^Layer_(\d+)/i.exec(node.name)?.[1]).filter(Boolean)
+    .map(id => String(Number(id))).sort();
+  assert.deepEqual(layerIds, [...expectedLayerIds].sort());
+};
+for (const id of Object.keys(systems)) {
+  const { system, layers, documents, products, tour } = await loadSystem(id);
+  const ids = layers.map(l => l.id);
+  assert.deepEqual(system.layers, ids, id);
+  assert.equal(new Set(ids).size, id === "stilobat-v2" ? 12 : 10);
+  for (const l of layers) {
+    if (l.product) assert.ok(products[l.product], l.product);
+  }
+  for (const step of tour) assert.ok(ids.includes(step.layer), step.layer);
+  for (const product of Object.values(products)) {
+    if (product.image) await readFile(path.join(assets, product.image.slice(1)));
+    for (const key of product.documents) assert.ok(documents[key], key);
+  }
+  for (const doc of Object.values(documents)) {
+    const pdf = await readFile(path.join(assets, doc.url.slice(1)));
+    assert.equal(pdf.subarray(0, 4).toString(), "%PDF", doc.url);
+  }
+  for (const asset of (system.modelAsset ? [system.modelAsset] : Object.values(modelAssets))) await checkModel(asset, ids);
+  const slug = id === "stilobat-v2" ? "stilobat" : id;
+  const html = await readFile(path.join(site, "blagoustroystvo", slug, "index.html"), "utf8");
+  assert.equal((html.match(/<button type="button" data-layer=/g) || []).length, ids.length);
+  assert.equal((html.match(/class="document-row/g) || []).length, Object.keys(documents).length);
+  assert.ok(html.includes('<template id="poster-image">'));
+  assert.match(html, /<noscript>[\s\S]+Слои системы/);
+  assert.ok(html.includes(current.base + "/static/" + current.release + "/app.js"));
+}
+assert.ok((await readFile(path.join(site, "index.html"), "utf8")).includes("location.replace"));
+console.log("PASS: all four systems, 42 layers, 5 GLB exports, product and PDF links, static HTML and build paths.");

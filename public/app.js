@@ -1,62 +1,26 @@
-import {
-  system,
-  layers,
-  products,
-  documents,
-  tour,
-} from "./content.js?v=studio-L3";
 import { defaults, decodeState, encodeState } from "./state.js";
 import { icon } from "./icons.js";
-import { chooseModelAsset, modelSizeLabel } from "./model-assets.js";
-import { initAboutGallery } from "./about-gallery.js?v=gallery1";
+import { chooseModelAsset } from "./model-assets.js";
+import { initAboutGallery } from "./about-gallery.js?v=calm";
+import { fadeIn, openFadingDialog, reducedMotion } from "./surface-motion.js";
+import { loadSystem } from "./systems.js";
+const { system, layers, products, documents, tour } = await loadSystem(document.documentElement.dataset.system);
+const modelAsset = () => system.modelAsset ?? chooseModelAsset();
+const modelSizeLabel = () => (modelAsset().bytes / 1e6).toLocaleString("ru-RU", { maximumFractionDigits: 1 }) + " МБ · загрузка по запросу";
+const systemTitle = `${system.name} ${system.version}`;
+const exportName = systemTitle.replaceAll(" ", "-");
 const $ = (selector) => document.querySelector(selector),
   $$ = (selector) => [...document.querySelectorAll(selector)];
 $$("[data-icon]").forEach((el) => {
   el.innerHTML = icon(el.dataset.icon);
 });
-let state = decodeState(location.hash),
+let state = decodeState(location.hash, system),
   viewer,
   loadPromise,
   controller,
   loadToken = 0,
   tourStep = -1,
   toastTimer;
-const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
-let detailSignature = "",
-  tabMarker;
-function reveal(el, { distance = 12, duration = 420, delay = 0 } = {}) {
-  if (!el || motionQuery.matches) return;
-  el.getAnimations().forEach((a) => a.cancel());
-  el.animate(
-    [
-      { opacity: 0.3, transform: `translateY(${distance}px)` },
-      { opacity: 1, transform: "translateY(0)" },
-    ],
-    { duration, delay, easing: "cubic-bezier(.22,1,.36,1)" },
-  );
-}
-function detailMotion() {
-  const signature = [state.layer, state.isolate].join(":");
-  if (signature === detailSignature) return;
-  detailSignature = signature;
-  reveal($("#layer-detail .detail-num"), { distance: -9, duration: 500 });
-  reveal($("#layer-detail .detail-main"), { distance: 9, duration: 440 });
-  reveal($("#layer-detail .product-teaser"), { distance: 14, duration: 560 });
-}
-function positionTabMarker() {
-  const active = $("[data-tab][aria-selected=true]"),
-    parent = $(".workspace-tabs");
-  if (!active || !tabMarker) return;
-  tabMarker.style.width = active.offsetWidth + "px";
-  tabMarker.style.transform = `translateX(${active.offsetLeft}px)`;
-}
-function openDialog(dialog) {
-  dialog.showModal();
-  reveal(dialog, { distance: 18, duration: 360 });
-}
-motionQuery.addEventListener("change", () => {
-  if (motionQuery.matches) document.getAnimations().forEach((a) => a.cancel());
-});
 const announce = (text) => {
   $("#announcement").textContent = text;
 };
@@ -71,23 +35,17 @@ function save() {
   history.replaceState(
     null,
     "",
-    location.pathname + location.search + encodeState(state),
+    location.pathname + location.search + encodeState(state, system),
   );
 }
 const docLink = (id) => {
   const d = documents[id];
   return `<a href="${d.url}" target="_blank" rel="noopener">${d.title}</a>`;
 };
-function renderList() {
-  $("#layer-list").innerHTML = layers
-    .map(
-      (l) =>
-        `<li><button data-layer="${l.id}" aria-pressed="${l.id === state.layer}" style="--swatch:${l.color}"><span class="layer-number">${l.id.padStart(2, "0")}</span><span class="layer-copy"><strong>${l.name}</strong><small>${l.short}</small></span></button></li>`,
-    )
-    .join("");
+function bindLayerList() {
   $("#layer-list").addEventListener("click", (e) => {
     const button = e.target.closest("[data-layer]");
-    if (button) selectLayer(button.dataset.layer, { mobile: true });
+    if (button) selectLayer(button.dataset.layer);
   });
   $("#layer-list").addEventListener("keydown", (e) => {
     const all = $$("[data-layer]"),
@@ -105,28 +63,6 @@ function renderList() {
     }
   });
 }
-function mobilePanel(detail, moveFocus = false) {
-  const changed = $("#explorer").classList.contains("show-detail") !== detail;
-  $("#explorer").classList.toggle("show-detail", detail);
-  $("#mobile-layers").setAttribute("aria-pressed", String(!detail));
-  $("#mobile-detail").setAttribute("aria-pressed", String(detail));
-  if (changed && matchMedia("(max-width:760px)").matches)
-    reveal(detail ? $("#detail-panel") : $("#layer-panel"), {
-      distance: 10,
-      duration: 340,
-    });
-  if (detail && moveFocus) {
-    const heading = $("#layer-detail h2");
-    heading.tabIndex = -1;
-    heading.focus({ preventScroll: true });
-    $("#mobile-detail").scrollIntoView({
-      block: "start",
-      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
-    });
-  }
-}
 function renderDetail() {
   const activeId = $("#layer-detail")?.contains(document.activeElement)
     ? document.activeElement.id
@@ -138,18 +74,12 @@ function renderDetail() {
   const l = layers.find((x) => x.id === state.layer),
     p = products[l.product];
   $("#layer-detail").innerHTML =
-    `<div class="detail-kicker"><span class="detail-num">${l.id.padStart(2, "0")}</span><span>СЛОЙ КОНСТРУКЦИИ</span></div><div class="detail-main"><h2>${l.name}</h2><p class="detail-subtitle">${l.short}</p><span class="role-label">${l.role}</span><p class="detail-text">${l.text}</p><div class="detail-actions"><button id="focus-layer" ${viewer?.ready ? "" : "disabled"}>${icon("focus")}<span>Приблизить</span></button><button id="isolate-layer" aria-pressed="${state.isolate}" ${viewer?.ready ? "" : "disabled"}>${icon(state.isolate ? "layers" : "isolate")}<span>${state.isolate ? "Все слои" : "Только слой"}</span></button></div><details><summary>Технические подробности</summary><p>${l.spec}</p></details></div>${p ? `<button class="product-teaser" id="open-product"><span class="eyebrow">МАТЕРИАЛ СЛОЯ</span>${p.image ? `<img src="${p.image}" alt="${p.imageAlt}" loading="lazy">` : ""}<span><strong>${p.name}</strong><small>Материал, поставка и документы</small></span></button>` : '<p class="no-product">Общестроительный слой. Материалы и параметры определяются проектом.</p>'}<a class="detail-source" href="/assets/system-01041100.pdf" target="_blank" rel="noopener">Технический лист системы</a>`;
-  $("#focus-layer").addEventListener("click", () => {
-    viewer?.focus();
-    announce("Камера приближена к слою " + l.name);
-  });
-  $("#isolate-layer").addEventListener("click", () =>
-    setIsolation(!state.isolate),
+    `<div class="detail-kicker"><span class="detail-num">${l.id.padStart(2, "0")}</span><span>СЛОЙ КОНСТРУКЦИИ</span></div><div class="detail-main"><h2>${l.name}</h2><p class="detail-subtitle">${l.short}</p><span class="role-label">${l.role}</span><p class="detail-text">${l.text}</p><details><summary>Технические подробности</summary><p>${l.spec}</p></details></div>${p ? `<button class="product-teaser" id="open-product"><span class="eyebrow">МАТЕРИАЛ СЛОЯ</span>${p.image ? `<img src="${p.image}" alt="${p.imageAlt}" loading="lazy">` : ""}<span><strong>${p.name}</strong><small>Материал, поставка и документы</small></span></button>` : '<p class="no-product">Общестроительный слой. Материалы и параметры определяются проектом.</p>'}<a class="detail-source" href="${documents.system.url}" target="_blank" rel="noopener">Технический лист системы</a>`;
+  $("#open-product")?.addEventListener("click", (event) =>
+    openProduct(l.product, event.detail > 0),
   );
-  $("#open-product")?.addEventListener("click", () => openProduct(p.id));
   if (keepExpanded) $("#layer-detail details").open = true;
   if (activeId) $("#" + activeId)?.focus({ preventScroll: true });
-  detailMotion();
 }
 function reflect() {
   $$("#layer-list button[data-layer]").forEach((b) =>
@@ -167,9 +97,13 @@ function reflect() {
   const l = layers.find((l) => l.id === state.layer);
   $("#selection-label").textContent = l.id.padStart(2, "0") + " / " + l.short;
   $("#selection-label").hidden = !viewer?.ready;
+  $("#mobile-layer-picker").value = l.id;
+  $("#mobile-layer-summary").textContent = l.short;
+  $("#isolate-layer").setAttribute("aria-pressed", String(state.isolate));
+  $("#isolate-label").textContent = state.isolate ? "Показать все слои" : "Только слой";
   renderDetail();
 }
-function selectLayer(id, { mobile = false } = {}) {
+function selectLayer(id) {
   if (!layers.some((l) => l.id === id)) return;
   state.layer = id;
   viewer?.select(id);
@@ -177,8 +111,6 @@ function selectLayer(id, { mobile = false } = {}) {
   reflect();
   save();
   announce("Выбран слой " + id + ": " + layers.find((l) => l.id === id).name);
-  if (mobile && matchMedia("(max-width:760px)").matches)
-    mobilePanel(true, true);
 }
 function setIsolation(value) {
   state.isolate = value;
@@ -211,10 +143,10 @@ function reflectExplode() {
 function reset() {
   if (!viewer?.ready) return;
   endTour(false);
-  state = { ...defaults() };
+  state = defaults(system);
   viewer.setExplode(0, true);
   viewer.setIsolation(false);
-  viewer.select("3");
+  viewer.select(state.layer);
   viewer.fit();
   reflect();
   markPreset("perspective");
@@ -222,6 +154,7 @@ function reset() {
   toast("Исходный вид восстановлен");
 }
 function markPreset(name) {
+  $("#mobile-preset-picker").value = name;
   $$("[data-preset]").forEach((b) =>
     b.setAttribute("aria-pressed", String(b.dataset.preset === name)),
   );
@@ -230,6 +163,7 @@ function loadingUI(kind, message = "") {
   const ready = kind === "ready",
     busy = kind === "loading";
   $("#poster").hidden = ready;
+  $(".scene-bottom").hidden = !ready;
   $("#model-status").textContent = ready
     ? "3D-МОДЕЛЬ"
     : busy
@@ -244,7 +178,7 @@ function loadingUI(kind, message = "") {
       ? "Модель пока недоступна"
       : busy
         ? "Готовим интерактивный разрез"
-        : "Загляните внутрь конструкции";
+        : "Интерактивный разрез";
   $("#load-description").textContent =
     message ||
     (busy
@@ -268,18 +202,23 @@ async function loadModel() {
   if (viewer?.ready) return true;
   if (loadPromise) return loadPromise;
   const token = ++loadToken;
-  controller = new AbortController();
-  const signal = controller.signal;
+  const request = new AbortController();
+  controller = request;
+  const { signal } = request;
   loadingUI("loading");
   loadPromise = (async () => {
-    let timer;
+    const timer = setTimeout(() => request.abort(), 180000);
     try {
-      const { SystemViewer } = await import("./viewer.js?v=demo-optimized1");
+      const asset = modelAsset();
+      const [{ SystemViewer }, response] = await Promise.all([
+        import("./viewer.js"),
+        fetch(asset.url, { signal }),
+      ]);
       if (token !== loadToken) return false;
       viewer?.dispose();
-      viewer = new SystemViewer($("#viewport"));
+      viewer = new SystemViewer($("#viewport"), system);
       viewer.addEventListener("select", (e) =>
-        selectLayer(e.detail, { mobile: true }),
+        selectLayer(e.detail),
       );
       viewer.addEventListener("reset", reset);
       viewer.addEventListener("camera", (e) => {
@@ -292,10 +231,8 @@ async function loadModel() {
         announce(e.detail);
         reflect();
       });
-      timer = setTimeout(() => controller.abort(), 180000);
-      const modelAsset = chooseModelAsset();
       await viewer.load(
-        modelAsset.url,
+        response,
         (p) => {
           if (token !== loadToken) return;
           $("#load-progress").value = Math.round(p * 100);
@@ -305,6 +242,7 @@ async function loadModel() {
               : `Загрузка ${Math.round(p * 100)}%`;
         },
         signal,
+        asset.bytes,
       );
       if (token !== loadToken) return false;
       viewer.setExplode(state.explode, true);
@@ -314,10 +252,12 @@ async function loadModel() {
       if (camera) viewer.restoreCamera(camera);
       else viewer.fit(false);
       loadingUI("ready");
+      fadeIn($("#viewport"), { duration: 200 });
       reflect();
-      announce("3D-модель готова. 12 слоёв доступны для выбора.");
+      announce(`3D-модель готова. ${layers.length} слоёв доступны для выбора.`);
       return true;
     } catch (e) {
+      request.abort();
       if (token !== loadToken) return false;
       viewer?.dispose();
       viewer = null;
@@ -350,19 +290,20 @@ function cancelLoad() {
   reflect();
   toast("Загрузка остановлена. Можно изучать слои и документы.");
 }
-function openProduct(id) {
+function openProduct(id, animate) {
   const p = products[id];
   $("#product-content").innerHTML =
     `<div class="product-head">${p.image ? `<img src="${p.image}" alt="${p.imageAlt}">` : `<div class="product-no-image">ПЕНОПЛЭКС®<br><span class="small">Марка по расчёту</span></div>`}<div><span class="eyebrow">${p.category}</span><h2 id="product-title">${p.name}</h2><p>${p.description}</p></div></div><dl class="product-facts">${p.facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl><div class="product-packaging"><h3>Поставка и упаковка</h3><p>${p.packaging}</p>${p.photoNote ? `<p class="photo-note">${p.photoNote}</p>` : ""}</div><div class="product-documents"><h3>Документы</h3>${p.documents.map(docLink).join("")}</div><div class="product-source"><a href="${p.source}" target="_blank" rel="noopener">Материал в каталоге</a></div>`;
-  openDialog($("#product-dialog"));
+  openFadingDialog($("#product-dialog"), animate);
 }
-function info(title, html) {
+function info(title, html, animate = false) {
   $("#info-content").innerHTML =
     `<span class="eyebrow">ПЕНОПЛЭКС · СТРОИТЕЛЬНЫЕ СИСТЕМЫ</span><h2 id="info-title">${title}</h2>${html}`;
-  openDialog($("#info-dialog"));
+  openFadingDialog($("#info-dialog"), animate);
 }
-function tab(name, { focus = false } = {}) {
-  const changed = $("[data-tab][aria-selected=true]")?.dataset.tab !== name;
+function tab(name, { focus = false, syncURL = true, animate = false } = {}) {
+  const panel = $("#" + name);
+  const changed = panel.hidden;
   $$("[data-tab]").forEach((b) => {
     const active = b.dataset.tab === name;
     b.setAttribute("aria-selected", String(active));
@@ -370,31 +311,42 @@ function tab(name, { focus = false } = {}) {
     if (active && focus) b.focus();
   });
   $$("[role=tabpanel]").forEach((p) => (p.hidden = p.id !== name));
-  positionTabMarker();
-  if (changed) reveal($("#" + name), { distance: 14, duration: 440 });
+  fadeIn(panel, { enabled: changed && animate });
+  if (syncURL) {
+    const view = new URL(location.href);
+    if (name === "explorer") view.searchParams.delete("tab");
+    else view.searchParams.set("tab", name);
+    if (name !== "about" && view.hash === "#system-gallery") view.hash = "";
+    history.replaceState(null, "", view);
+  }
   if (name !== "explorer") endTour(false);
-  else requestAnimationFrame(() => viewer?.resize());
+  else {
+    if (!viewer?.ready && !$("#poster > img")) {
+      const template = $("#poster-image");
+      if (template) template.before(template.content.cloneNode(true));
+    }
+    requestAnimationFrame(() => viewer?.resize());
+  }
 }
-async function startTour() {
+async function startTour(event) {
+  const animate = event.detail > 0;
   tab("explorer");
   if (!(await loadModel())) return;
   tourStep = 0;
-  applyTour();
+  applyTour(animate);
   $("#tour-next").focus({ preventScroll: true });
   $("#tour").scrollIntoView({
-    block: "end",
-    behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? "auto"
-      : "smooth",
+    block: "nearest",
+    behavior: animate && !reducedMotion.matches ? "smooth" : "auto",
   });
 }
-function applyTour() {
+function applyTour(animate) {
   const t = tour[tourStep];
   $("#tour").hidden = false;
   $("#tour-count").textContent = `ШАГ ${tourStep + 1} ИЗ ${tour.length}`;
   $("#tour-title").textContent = t.title;
   $("#tour-text").textContent = t.text;
-  reveal($("#tour"), { distance: 8, duration: 360 });
+  fadeIn($("#tour"), { enabled: animate });
   $("#tour-prev").disabled = tourStep === 0;
   $("#tour-next").textContent =
     tourStep === tour.length - 1 ? "Готово" : "Далее";
@@ -433,8 +385,10 @@ function download(data, name) {
 }
 async function share() {
   state.camera = viewer?.ready ? viewer.getCamera() : state.camera;
-  save();
-  const url = location.href;
+  const view = new URL(location.href);
+  view.searchParams.delete("tab");
+  view.hash = encodeState(state, system);
+  const url = view.href;
   try {
     await navigator.clipboard.writeText(url);
     toast("Ссылка на этот вид скопирована");
@@ -460,7 +414,7 @@ async function share() {
 }
 function materials() {
   const rows = [
-    ["СТИЛОБАТ V2.0 — состав системы"],
+    [`${systemTitle} — состав системы`],
     ["Позиция", "Материал / слой", "Назначение", "Примечание"],
     ...layers.map((l) => [l.id, l.name, l.short, l.spec]),
   ];
@@ -474,26 +428,26 @@ function materials() {
   const url = URL.createObjectURL(
     new Blob([csv], { type: "text/csv;charset=utf-8" }),
   );
-  download(url, "СТИЛОБАТ-V2.0-состав.csv");
+  download(url, `${exportName}-состав.csv`);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   toast("Список материалов подготовлен");
 }
-renderList();
+bindLayerList();
+$("#mobile-layer-picker").replaceChildren(...layers.map((layer) =>
+  new Option(layer.id.padStart(2, "0") + " · " + layer.name, layer.id),
+));
+$("#mobile-layer-picker").addEventListener("change", (event) => selectLayer(event.target.value));
+const touchInput = matchMedia("(pointer: coarse)");
+function updateGestureHint() {
+  $("#gesture-hint").textContent = touchInput.matches
+    ? "Один палец — вращение · два — масштаб"
+    : "Перетащите для вращения · колесо меняет масштаб";
+}
+updateGestureHint();
+touchInput.addEventListener("change", updateGestureHint);
 reflect();
 $("#load-size").textContent = modelSizeLabel();
-tabMarker = document.createElement("span");
-tabMarker.className = "tab-marker";
-tabMarker.setAttribute("aria-hidden", "true");
-$(".workspace-tabs").append(tabMarker);
-new ResizeObserver(positionTabMarker).observe($(".workspace-tabs"));
-document.fonts.ready.then(positionTabMarker);
 
-$("#document-list").innerHTML = Object.values(documents)
-  .map(
-    (d) =>
-      `<a class="document-row" href="${d.url}" target="_blank" rel="noopener"><span class="file-mark">PDF</span><span><strong>${d.title}</strong><small>${d.subtitle}</small></span><span class="document-open">Открыть</span></a>`,
-  )
-  .join("");
 $("#load-model").addEventListener("click", loadModel);
 $("#cancel-load").addEventListener("click", cancelLoad);
 $("#start-tour").addEventListener("click", startTour);
@@ -514,6 +468,10 @@ $("#return-all").addEventListener("click", () => setIsolation(false));
 $("#reset").addEventListener("click", reset);
 $("#zoom-in").addEventListener("click", () => viewer.zoom(1 / 1.2));
 $("#zoom-out").addEventListener("click", () => viewer.zoom(1.2));
+$("#mobile-preset-picker").addEventListener("change", (event) => {
+  viewer.preset(event.target.value);
+  markPreset(event.target.value);
+});
 $$("[data-preset]").forEach((b) =>
   b.addEventListener("click", () => {
     viewer.preset(b.dataset.preset);
@@ -521,23 +479,49 @@ $$("[data-preset]").forEach((b) =>
   }),
 );
 $("#snapshot").addEventListener("click", () => {
-  download(viewer.snapshot(), "СТИЛОБАТ-V2.0-слой-" + state.layer + ".png");
+  closeSceneMenu(true);
+  download(viewer.snapshot(), `${exportName}-слой-${state.layer}.png`);
   toast("PNG текущего вида подготовлен к скачиванию");
 });
-$("#share").addEventListener("click", share);
-$("#materials").addEventListener("click", materials);
-$("#mobile-layers").addEventListener("click", () => mobilePanel(false));
-$("#mobile-detail").addEventListener("click", () => mobilePanel(true));
-$("#tour-prev").addEventListener("click", () => {
-  if (tourStep > 0) {
-    tourStep--;
-    applyTour();
+const sceneMenu = $("#scene-menu");
+function closeSceneMenu(restoreFocus = false) {
+  sceneMenu.open = false;
+  if (restoreFocus) sceneMenu.querySelector("summary").focus({ preventScroll: true });
+}
+sceneMenu.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && sceneMenu.open) {
+    event.preventDefault();
+    closeSceneMenu(true);
   }
 });
-$("#tour-next").addEventListener("click", () => {
+document.addEventListener("pointerdown", (event) => {
+  if (sceneMenu.open && !sceneMenu.contains(event.target)) closeSceneMenu();
+});
+$("#share").addEventListener("click", () => {
+  closeSceneMenu(true);
+  share();
+});
+$("#materials").addEventListener("click", materials);
+$("#focus-layer").addEventListener("click", () => {
+  viewer?.focus();
+  announce("Камера приближена к выбранному слою");
+});
+$("#isolate-layer").addEventListener("click", () => setIsolation(!state.isolate));
+$("#application-explore").addEventListener("click", (event) => {
+  tab("explorer", { focus: true, animate: event.detail > 0 });
+  $(".workspace-nav").scrollIntoView({ block: "start" });
+  loadModel();
+});
+$("#tour-prev").addEventListener("click", (event) => {
+  if (tourStep > 0) {
+    tourStep--;
+    applyTour(event.detail > 0);
+  }
+});
+$("#tour-next").addEventListener("click", (event) => {
   if (tourStep < tour.length - 1) {
     tourStep++;
-    applyTour();
+    applyTour(event.detail > 0);
   } else {
     endTour();
     toast("Теперь можно исследовать систему самостоятельно");
@@ -545,7 +529,9 @@ $("#tour-next").addEventListener("click", () => {
 });
 $("#tour-close").addEventListener("click", () => endTour());
 $$("[data-tab]").forEach((b, i, all) => {
-  b.addEventListener("click", () => tab(b.dataset.tab));
+  b.addEventListener("click", (event) =>
+    tab(b.dataset.tab, { animate: event.detail > 0 }),
+  );
   b.addEventListener("keydown", (e) => {
     let j;
     if (e.key === "ArrowRight") j = (i + 1) % all.length;
@@ -576,14 +562,15 @@ $$("dialog").forEach((d) =>
     }
   }),
 );
-$("#help").addEventListener("click", () =>
+$("#help").addEventListener("click", (event) =>
   info(
     "Как исследовать систему",
     "<ul><li>Тяните модель мышью или одним пальцем, чтобы вращать.</li><li>Прокручивайте колесо или сводите два пальца для масштаба. Также доступны кнопки + и −.</li><li>Выберите слой на разрезе или в списке. «Только слой» временно скрывает остальную конструкцию.</li><li>Разнесите слои ползунком. Кнопка сброса возвращает исходный вид.</li><li>С клавиатуры: Tab — перейти к элементу; Enter — выбрать. На 3D-сцене стрелки вращают модель, + и − меняют масштаб, 0 сбрасывает вид.</li></ul>",
+    event.detail > 0,
   ),
 );
 window.addEventListener("hashchange", () => {
-  state = decodeState(location.hash);
+  state = decodeState(location.hash, system);
   endTour(false);
   if (viewer?.ready) {
     viewer.setExplode(state.explode, true);
@@ -596,7 +583,7 @@ window.addEventListener("hashchange", () => {
 });
 initAboutGallery();
 const requestedTab = new URLSearchParams(location.search).get("tab");
-if (requestedTab === "about" || requestedTab === "documents") tab(requestedTab);
+if (requestedTab === "about" || requestedTab === "documents") tab(requestedTab, { syncURL: false });
 window.demo = {
   get state() {
     return structuredClone(state);
@@ -612,6 +599,4 @@ window.demo = {
   },
   version: "2.3.0",
 };
-if (location.hash.includes("system=stilobat-v2") && !requestedTab) loadModel();
-
-// Local BrowserSync live reload verified.
+if (new URLSearchParams(location.hash.slice(1)).get("system") === system.id && !requestedTab) loadModel();

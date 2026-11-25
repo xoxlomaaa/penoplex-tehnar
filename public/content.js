@@ -89,7 +89,7 @@ export const products = {
     id: "xps",
     name: "ПЕНОПЛЭКС®",
     category: "Теплоизоляция XPS",
-    image: "/assets/products/xps-model.png",
+    image: "/assets/products/xps-model-optimized.webp",
     imageAlt: "Плиты ПЕНОПЛЭКС в конструкции",
     description:
       "Экструзионный пенополистирол для теплоизоляционного слоя. Рекомендуемые марки — ГЕО, ГЕО С, тип 45 и тип 45С. Марка определяется расчётом нагрузок.",
@@ -225,13 +225,6 @@ export const system = {
   id: "stilobat-v2",
   name: "СТИЛОБАТ",
   version: "V2.0",
-  modelBytes: 39527748,
-  modelSha256:
-    "95f5ec8967eea4daf4ae326f255d55f52804b393914e9356910364c5a601e8dc",
-  render: "/assets/renders/stilobat-L3-main.png",
-  objectMask: "/assets/renders/stilobat-L3-object-mask.png",
-  model: "/assets/models/stilobat-L3-web.glb",
-  metadata: "/assets/models/stilobat-L3.json",
   layers: layers.map((l) => l.id),
   documents: ["system"],
 };

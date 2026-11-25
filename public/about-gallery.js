@@ -1,4 +1,5 @@
-// Two supplied architectural images, without cropping or automatic rotation.
+import { fadeIn, openFadingDialog } from "./surface-motion.js";
+
 export function initAboutGallery() {
   const root = document.getElementById("system-gallery");
   if (!root) return;
@@ -6,7 +7,7 @@ export function initAboutGallery() {
     stage = document.getElementById("gallery-stage");
   const figures = [...root.querySelectorAll("[data-gallery-slide]")],
     choices = [...root.querySelectorAll("[data-gallery-choice]")];
-  const captions = [
+  const defaultCaptions = [
     {
       title: "Пространство для жизни",
       description: "Спорт, озеленение и отдых на крыше стилобата.",
@@ -16,6 +17,10 @@ export function initAboutGallery() {
       description: "Слои системы в раскрытом углу конструкции.",
     },
   ];
+  const captions = figures.map((figure, i) => ({
+    title: figure.dataset.title ?? defaultCaptions[i].title,
+    description: figure.dataset.description ?? defaultCaptions[i].description,
+  }));
   let index = 0,
     opener,
     drag,
@@ -34,9 +39,12 @@ export function initAboutGallery() {
       captions[index].description;
     document.getElementById("gallery-lightbox-count").textContent =
       `0${index + 1} / 02`;
+    return target;
   };
-  function show(next) {
-    index = (next + figures.length) % figures.length;
+  function show(next, animate = false) {
+    const nextIndex = (next + figures.length) % figures.length;
+    if (nextIndex === index) return;
+    index = nextIndex;
     root.dataset.slide = String(index);
     figures.forEach((figure, i) => (figure.hidden = i !== index));
     choices.forEach((button, i) =>
@@ -51,20 +59,16 @@ export function initAboutGallery() {
     document.getElementById("gallery-count").textContent = `0${index + 1} / 02`;
     document.getElementById("gallery-status").textContent =
       `Изображение ${index + 1} из 2. ${captions[index].title}`;
-    if (dialog.open) fillDialog();
-    if (!matchMedia("(prefers-reduced-motion: reduce)").matches)
-      image.animate([{ opacity: 0.65 }, { opacity: 1 }], {
-        duration: 260,
-        easing: "ease-out",
-      });
+    const currentImage = dialog.open ? fillDialog() : image;
+    fadeIn(currentImage, { enabled: animate, duration: 190 });
   }
   for (const parent of [root, dialog]) {
     parent
       .querySelectorAll("[data-gallery-prev]")
-      .forEach((b) => b.addEventListener("click", () => show(index - 1)));
+      .forEach((b) => b.addEventListener("click", (event) => show(index - 1, event.detail > 0)));
     parent
       .querySelectorAll("[data-gallery-next]")
-      .forEach((b) => b.addEventListener("click", () => show(index + 1)));
+      .forEach((b) => b.addEventListener("click", (event) => show(index + 1, event.detail > 0)));
     parent.addEventListener("keydown", (e) => {
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         e.preventDefault();
@@ -73,7 +77,7 @@ export function initAboutGallery() {
     });
   }
   choices.forEach((button, i) =>
-    button.addEventListener("click", () => show(i)),
+    button.addEventListener("click", (event) => show(i, event.detail > 0)),
   );
   figures.forEach((figure) => {
     const image = figure.querySelector("img"),
@@ -84,7 +88,7 @@ export function initAboutGallery() {
     };
     image.addEventListener("error", failed);
     if (image.complete && !image.naturalWidth) failed();
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (event) => {
       if (suppressClick) {
         suppressClick = false;
         return;
@@ -93,7 +97,7 @@ export function initAboutGallery() {
       fillDialog();
       previousOverflow = document.documentElement.style.overflow;
       document.documentElement.style.overflow = "hidden";
-      dialog.showModal();
+      openFadingDialog(dialog, event.detail > 0);
     });
   });
   document
@@ -120,7 +124,7 @@ export function initAboutGallery() {
     drag = null;
     if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) {
       suppressClick = true;
-      show(index + (dx < 0 ? 1 : -1));
+      show(index + (dx < 0 ? 1 : -1), true);
     }
   });
 }

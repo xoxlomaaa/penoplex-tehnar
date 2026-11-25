@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="ru" data-system="invers-green">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#EC6608" />
+    <meta
+      name="description"
+      content="Изучите ИНВЕРС GREEN: интерактивный разрез, назначение слоёв, материалы и документы ПЕНОПЛЭКС."
+    />
+    <title>ИНВЕРС GREEN — ПЕНОПЛЭКС Технарь</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/styles.css?v=brand-accents" />
+    <link rel="stylesheet" href="/motion.css?v=brand-accents" />
+    <link rel="stylesheet" href="/catalog.css?v=brand-accents" />
+    <link rel="stylesheet" href="/atlas.css?v=brand-accents" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/build/three.module.js",
+          "three/addons/": "/vendor/three/addons/"
+        }
+      }
+    </script>
+  </head>
+  <body class="system-page">
+    <a class="skip" href="#explorer">Перейти к изучению системы</a>
+    <header class="site-header">
+      <a href="/blagoustroystvo/" class="brand" aria-label="ПЕНОПЛЭКС Технарь — каталог систем"
+        >
+        <img src="/assets/brand/penoplex-tehnar-uppercase.svg" alt="" width="197" height="47" />
+      </a
+      ><span class="header-divider"></span
+      ><nav class="direction-nav" aria-label="Направления сервиса">
+        <a href="/blagoustroystvo/">Благоустройство</a>
+      </nav><a class="official" href="https://www.penoplex.ru/systems/inversionnaya-krovlya-invers-green/" target="_blank" rel="noopener" aria-label="На сайт ПЕНОПЛЭКС — страница системы">
+        <span class="official-label">На сайт ПЕНОПЛЭКС</span><span data-icon="external" aria-hidden="true"></span>
+      </a>
+    </header>
+    <main>
+      <section class="intro">
+        <nav class="breadcrumb system-breadcrumb" aria-label="Путь в каталоге">
+          <a href="/blagoustroystvo/">Благоустройство</a>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">ИНВЕРС GREEN</span>
+        </nav>
+        <div class="title-row">
+          <h1>ИНВЕРС <span>GREEN</span></h1>
+          <p class="lead">Озеленённая инверсионная кровля</p>
+        </div>
+      </section>
+      <div class="workspace-nav">
+        <div class="workspace-tabs" role="tablist" aria-label="Разделы системы">
+          <button
+            role="tab"
+            aria-selected="true"
+            aria-controls="explorer"
+            id="tab-explore"
+            data-tab="explorer"
+          >
+            Разрез 3D</button
+          ><button
+            role="tab"
+            aria-selected="false"
+            aria-controls="about"
+            id="tab-about"
+            data-tab="about"
+            tabindex="-1"
+          >
+            Применение</button
+          ><button
+            role="tab"
+            aria-selected="false"
+            aria-controls="documents"
+            id="tab-documents"
+            data-tab="documents"
+            tabindex="-1"
+          >
+            Документы <span class="count">3</span>
+          </button>
+        </div>
+      </div>
+      <section
+        class="explorer"
+        id="explorer"
+        role="tabpanel"
+        aria-labelledby="tab-explore"
+      >
+        <aside class="layer-panel" id="layer-panel">
+          <div class="panel-heading">
+            <h2>Слои системы</h2>
+            <span>10</span>
+          </div>
+          <p class="panel-caption">От растений к основанию</p>
+          <ol id="layer-list" class="layer-list" aria-label="Выбор слоя"></ol>
+        </aside>
+        <div class="scene-column">
+          <div class="view-toolbar">
+            <select id="mobile-preset-picker" aria-label="Ракурс 3D" data-needs-model disabled>
+              <option value="perspective">Общий</option>
+              <option value="front">Спереди</option>
+              <option value="top">Сверху</option>
+            </select>
+            <div class="presets" role="group" aria-label="Ракурсы">
+              <button
+                data-preset="perspective"
+                aria-pressed="true"
+                data-needs-model
+                disabled
+              >
+                Общий</button
+              ><button
+                data-preset="front"
+                aria-pressed="false"
+                data-needs-model
+                disabled
+              >
+                Спереди</button
+              ><button
+                data-preset="top"
+                aria-pressed="false"
+                data-needs-model
+                disabled
+              >
+                Сверху
+              </button>
+            </div>
+            <div class="zoom-tools">
+                <button
+                  class="icon-button"
+                  id="zoom-out"
+                  aria-label="Отдалить"
+                  data-needs-model
+                  disabled
+                >
+                  <span data-icon="minus"></span></button
+                ><button
+                  class="icon-button"
+                  id="zoom-in"
+                  aria-label="Приблизить"
+                  data-needs-model
+                  disabled
+                >
+                  <span data-icon="plus"></span></button
+                ><button
+                  class="icon-button"
+                  id="reset"
+                  aria-label="Сбросить вид и собрать систему"
+                  data-needs-model
+                  disabled
+                >
+                  <span data-icon="reset"></span>
+                </button>
+              </div>
+          </div>
+          <div class="scene" id="scene">
+            <div class="scene-top">
+              <span class="scene-badge"
+                ><i></i> <span id="model-status">РАЗРЕЗ СИСТЕМЫ</span></span
+              >
+              <div class="scene-tools">
+                <button class="tour-launch" id="start-tour">
+                  <span data-icon="play"></span
+                  ><span>Знакомство <b>5 шагов</b></span></button
+                ><button
+                  id="help"
+                  class="icon-button"
+                  aria-label="Как управлять моделью"
+                >
+                  <span data-icon="help"></span>
+                </button>
+                <details class="scene-menu" id="scene-menu">
+                  <summary aria-label="Ссылка и экспорт" data-icon="more"></summary>
+                  <div class="scene-menu-actions">
+                    <button id="share"><span data-icon="link" aria-hidden="true"></span>Скопировать ссылку на вид</button>
+                    <button id="snapshot" data-needs-model disabled><span data-icon="download" aria-hidden="true"></span>Сохранить PNG</button>
+                  </div>
+                </details>
+              </div>
+            </div>
+            <div
+              class="viewport"
+              id="viewport"
+              role="region"
+              aria-label="3D-модель. Стрелки — вращение, плюс и минус — масштаб, 0 — сброс"
+              tabindex="0"
+            ></div>
+            <div class="poster" id="poster">
+              <template id="poster-image"><img
+                src="/assets/invers-green/studio-800-optimized.webp"
+                srcset="/assets/invers-green/studio-480-optimized.webp 480w, /assets/invers-green/studio-640-optimized.webp 640w, /assets/invers-green/studio-800-optimized.webp 800w, /assets/invers-green/studio-1024-optimized.webp 1024w, /assets/invers-green/studio-1280-optimized.webp 1280w"
+                sizes="(max-width: 760px) calc(100vw - 30px), (max-width: 1100px) 65vw, 760px"
+                width="1800"
+                height="1800"
+                fetchpriority="high"
+                decoding="async"
+                alt="Ступенчатый разрез ИНВЕРС GREEN: растения, субстрат, дренаж, теплоизоляция, мембрана и железобетон"
+              /></template>
+
+              <div class="load-card">
+                <h2 id="load-title">Интерактивный разрез</h2>
+                <p id="load-description">
+                  Вращайте разрез, разделяйте слои<br />и изучайте материалы.
+                </p>
+                <button class="button primary launch-3d" id="load-model">
+                  Открыть 3D-модель
+                </button>
+                <p class="load-size" id="load-size">
+                  10,7 МБ · загрузка по запросу
+                </p>
+                <progress
+                  id="load-progress"
+                  aria-label="Загрузка модели"
+                  max="100"
+                  value="0"
+                  hidden
+                ></progress
+                ><button class="text-button" id="cancel-load" hidden>
+                  Пока изучить слои
+                </button>
+              </div>
+            </div>
+            <div class="selection-label" id="selection-label" hidden></div>
+            <div id="isolation-banner" class="isolation-banner" hidden>
+              Показан один слой
+              <button id="return-all">Вернуть конструкцию</button>
+            </div>
+            <div class="scene-bottom" hidden><span id="gesture-hint">Перетащите модель для вращения · колесо меняет масштаб</span></div>
+          </div>
+
+          <div class="scene-layer-picker">
+            <label for="mobile-layer-picker">Выбранный слой</label>
+            <select id="mobile-layer-picker" aria-describedby="mobile-layer-summary"></select>
+            <p id="mobile-layer-summary"></p>
+          </div>
+          <div class="explode-control">
+            <button
+              class="explode-toggle"
+              id="explode-toggle"
+              data-needs-model
+              disabled
+            >
+              <span
+                class="stack-icon"
+                data-icon="layers"
+                aria-hidden="true"
+              ></span
+              ><span id="explode-label">Разнести слои</span>
+            </button>
+            <div class="range-wrap">
+              <label for="explode">Собрано</label
+              ><input
+                id="explode"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value="0"
+                aria-label="Разнесение слоёв"
+                data-needs-model
+                disabled
+              /><span>Разнесено</span>
+            </div>
+            <output id="explode-output" for="explode">0%</output>
+          </div>
+          <div class="scene-layer-tools" role="group" aria-label="Действия с выбранным слоем">
+            <button id="focus-layer" data-needs-model disabled><span data-icon="focus" aria-hidden="true"></span>Приблизить слой</button>
+            <button id="isolate-layer" aria-pressed="false" data-needs-model disabled><span data-icon="isolate" aria-hidden="true"></span><span id="isolate-label">Только слой</span></button>
+          </div>
+          <section
+            class="tour"
+            id="tour"
+            hidden
+            aria-label="Пошаговое знакомство"
+          >
+            <div>
+              <span id="tour-count" class="eyebrow"></span>
+              <h2 id="tour-title"></h2>
+              <p id="tour-text"></p>
+            </div>
+            <div class="tour-actions">
+              <button
+                class="icon-button"
+                id="tour-prev"
+                aria-label="Предыдущий шаг"
+              >
+                <span data-icon="previous"></span></button
+              ><button class="button primary" id="tour-next">Далее</button
+              ><button class="text-button" id="tour-close">Завершить</button>
+            </div>
+          </section>
+        </div>
+        <aside
+          class="detail-panel"
+          id="detail-panel"
+          aria-label="Информация о выбранном слое"
+        >
+          <div id="layer-detail"></div>
+        </aside>
+      </section>
+      <section
+        class="information"
+        id="about"
+        role="tabpanel"
+        aria-labelledby="tab-about"
+        hidden
+      >
+        <div class="about-copy">
+          <h2>Газон на железобетонном перекрытии</h2>
+          <p>Растения растут на субстрате. Фильтр удерживает его частицы, а дренаж накапливает часть воды и отводит избыток. Теплоизоляция лежит над ПВХ-мембраной PLASTFOIL GEO.</p>
+          <p>В интерактивном разрезе показаны газон, стеклохолст CANVAS и вариант с противокорневой плёнкой. Толщины в 3D передают строение слоёв. Рабочие размеры определяются проектом.</p>
+          <a
+            href="/assets/invers-green/01040100.pdf"
+            target="_blank"
+            class="button dark"
+            rel="noopener"
+            >Изучить технический лист</a
+          >
+          <button class="button primary launch-3d" id="application-explore" type="button">Посмотреть разрез в 3D</button>
+        </div>
+        <section
+          class="system-gallery"
+          id="system-gallery"
+          aria-label="ИНВЕРС GREEN в архитектуре"
+          aria-roledescription="карусель"
+          data-slide="0"
+        >
+          <div class="gallery-stage" id="gallery-stage">
+            <figure
+              class="gallery-slide"
+              data-gallery-slide="0"
+              data-title="Большой газон над перекрытием"
+              data-description="На газоне расположены шезлонги и цветники. У края стилобата раскрыты слои под дерниной."
+              role="group"
+              aria-roledescription="слайд"
+              aria-label="1 из 2 — Общий вид"
+            >
+              <button
+                class="gallery-open"
+                data-gallery-open
+                aria-label="Увеличить изображение: общий вид озеленённой кровли"
+              >
+                <img
+                  src="/assets/architecture/daylight-v1/invers-green/overview-768-optimized.webp"
+                  srcset="/assets/architecture/daylight-v1/invers-green/overview-480-optimized.webp 480w, /assets/architecture/daylight-v1/invers-green/overview-640-optimized.webp 640w, /assets/architecture/daylight-v1/invers-green/overview-768-optimized.webp 768w, /assets/architecture/daylight-v1/invers-green/overview-960-optimized.webp 960w, /assets/architecture/daylight-v1/invers-green/overview-1280-optimized.webp 1280w"
+                  sizes="(max-width: 760px) calc(100vw - 60px), (max-width: 1024px) calc(100vw - 85px), (max-width: 1450px) 62vw, 900px"
+                  data-full="/assets/architecture/daylight-v1/invers-green/overview-1691.webp"
+                  alt="Газон на стилобате с шезлонгами, цветниками и открытым разрезом у края"
+                  width="1691"
+                  height="930"
+                  loading="lazy"
+                  decoding="async"
+                  draggable="false"
+                /><span class="gallery-expand" aria-hidden="true"
+                  ><span data-icon="focus"></span
+                ></span>
+              </button>
+              <p class="gallery-error" hidden>
+                Изображение не загрузилось.
+                <a
+                  href="/assets/architecture/daylight-v1/invers-green/overview.png"
+                  target="_blank"
+                  rel="noopener"
+                  >Открыть оригинал</a
+                >
+              </p>
+            </figure>
+            <figure
+              class="gallery-slide"
+              data-gallery-slide="1"
+              data-title="Разрез под газоном"
+              data-description="Под травой видны субстрат, фильтр, дренаж, теплоизоляция и гидроизоляция."
+              role="group"
+              aria-roledescription="слайд"
+              aria-label="2 из 2 — Конструкция в разрезе"
+              hidden
+            >
+              <button
+                class="gallery-open"
+                data-gallery-open
+                aria-label="Увеличить изображение: разрез под газоном"
+              >
+                <img
+                  src="/assets/architecture/daylight-v1/invers-green/cutaway-768-optimized.webp"
+                  srcset="/assets/architecture/daylight-v1/invers-green/cutaway-480-optimized.webp 480w, /assets/architecture/daylight-v1/invers-green/cutaway-640-optimized.webp 640w, /assets/architecture/daylight-v1/invers-green/cutaway-768-optimized.webp 768w, /assets/architecture/daylight-v1/invers-green/cutaway-960-optimized.webp 960w, /assets/architecture/daylight-v1/invers-green/cutaway-1280-optimized.webp 1280w"
+                  sizes="(max-width: 760px) calc(100vw - 60px), (max-width: 1024px) calc(100vw - 85px), (max-width: 1450px) 62vw, 900px"
+                  data-full="/assets/architecture/daylight-v1/invers-green/cutaway-1690.webp"
+                  alt="Разрез под сплошным газоном с видимыми слоями субстрата, дренажа и теплоизоляции"
+                  width="1690"
+                  height="931"
+                  loading="lazy"
+                  decoding="async"
+                  draggable="false"
+                /><span class="gallery-expand" aria-hidden="true"
+                  ><span data-icon="focus"></span
+                ></span>
+              </button>
+              <p class="gallery-error" hidden>
+                Изображение не загрузилось.
+                <a
+                  href="/assets/architecture/daylight-v1/invers-green/cutaway.png"
+                  target="_blank"
+                  rel="noopener"
+                  >Открыть оригинал</a
+                >
+              </p>
+            </figure>
+          </div>
+          <div class="gallery-footer">
+            <div class="gallery-heading">
+              <div>
+                <span class="gallery-kicker">СИСТЕМА В АРХИТЕКТУРЕ</span>
+                <h3 id="gallery-title">Большой газон над перекрытием</h3>
+                <p id="gallery-description">
+                  На газоне расположены шезлонги и цветники. У края стилобата раскрыты слои под дерниной.
+                </p>
+              </div>
+              <div class="gallery-nav">
+                <span id="gallery-count" aria-hidden="true">01 / 02</span
+                ><button
+                  class="icon-button"
+                  data-gallery-prev
+                  aria-label="Предыдущее изображение"
+                >
+                  <span data-icon="back"></span></button
+                ><button
+                  class="icon-button gallery-next"
+                  data-gallery-next
+                  aria-label="Следующее изображение"
+                >
+                  <span data-icon="back"></span>
+                </button>
+              </div>
+            </div>
+            <div
+              class="gallery-choices"
+              role="group"
+              aria-label="Выбрать изображение"
+            >
+              <button data-gallery-choice="0" aria-pressed="true">
+                <img
+                  src="/assets/architecture/daylight-v1/invers-green/overview-160-optimized.webp"
+                  alt=""
+                  width="80"
+                  height="40"
+                  loading="lazy"
+                /><span><small>01</small>Общий вид</span></button
+              ><button data-gallery-choice="1" aria-pressed="false">
+                <img
+                  src="/assets/architecture/daylight-v1/invers-green/cutaway-160-optimized.webp"
+                  alt=""
+                  width="80"
+                  height="40"
+                  loading="lazy"
+                /><span><small>02</small>Конструкция в разрезе</span>
+              </button>
+            </div>
+          </div>
+          <p
+            class="sr-only"
+            id="gallery-status"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          ></p>
+        </section>
+      </section>
+      <section
+        class="document-panel"
+        id="documents"
+        role="tabpanel"
+        aria-labelledby="tab-documents"
+        hidden
+      >
+        <div class="document-heading">
+          <h2>Технические листы и материалы</h2>
+          <button id="materials" class="button dark"><span data-icon="download" aria-hidden="true"></span>Скачать состав CSV</button>
+        </div>
+        <div id="document-list"></div>
+      </section>
+      <nav class="system-links system-links-secondary" aria-label="Системы благоустройства">
+        <a href="/blagoustroystvo/stilobat/">Стилобат V2.0</a>
+        <a href="/blagoustroystvo/invers-green/" aria-current="page">ИНВЕРС GREEN</a>
+        <a href="/blagoustroystvo/invers-way/">ИНВЕРС WAY</a>
+        <a href="/blagoustroystvo/invers-sport/">ИНВЕРС SPORT</a>
+      </nav>
+    </main>
+    <footer class="site-footer">
+      <span>ПЕНОПЛЭКС Технарь · Строительные системы</span
+      ><span>Интерактивный каталог строительных решений</span>
+    </footer>
+    <dialog id="product-dialog" aria-labelledby="product-title">
+      <div id="product-content"></div>
+      <button
+        class="dialog-close icon-button"
+        id="product-close"
+        autofocus
+        aria-label="Закрыть карточку продукта"
+      >
+        <span data-icon="close"></span>
+      </button>
+    </dialog>
+    <dialog id="info-dialog" aria-labelledby="info-title">
+      <button
+        class="dialog-close icon-button"
+        id="info-close"
+        aria-label="Закрыть окно"
+      >
+        <span data-icon="close"></span>
+      </button>
+      <div id="info-content"></div>
+    </dialog>
+    <dialog
+      class="gallery-lightbox"
+      id="gallery-lightbox"
+      aria-labelledby="gallery-lightbox-title"
+    >
+      <div class="gallery-lightbox-top">
+        <span
+          >ИНВЕРС GREEN <span aria-hidden="true">/</span>
+          <span id="gallery-lightbox-count">01 / 02</span></span
+        ><button
+          class="icon-button"
+          id="gallery-close"
+          aria-label="Закрыть просмотр изображения"
+          autofocus
+        >
+          <span data-icon="close"></span>
+        </button>
+      </div>
+      <img id="gallery-lightbox-image" alt="" width="2400" height="1320" />
+      <div class="gallery-lightbox-bottom">
+        <div>
+          <h2 id="gallery-lightbox-title">Большой газон над перекрытием</h2>
+          <p id="gallery-lightbox-description"></p>
+        </div>
+        <div class="gallery-nav">
+          <button
+            class="icon-button"
+            data-gallery-prev
+            aria-label="Предыдущее изображение"
+          >
+            <span data-icon="back"></span></button
+          ><button
+            class="icon-button gallery-next"
+            data-gallery-next
+            aria-label="Следующее изображение"
+          >
+            <span data-icon="back"></span>
+          </button>
+        </div>
+      </div>
+    </dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div
+      class="sr-only"
+      id="announcement"
+      role="status"
+      aria-live="polite"
+    ></div>
+    <noscript
+      ><p class="noscript">
+        Для 3D нужен JavaScript.
+        <a href="/assets/invers-green/01040100.pdf"
+          >Откройте технический лист системы PDF</a
+        >.
+      </p></noscript
+    >
+    <script type="module" src="/app.js?v=calm"></script>
+  </body>
+</html>

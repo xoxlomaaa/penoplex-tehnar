@@ -2,6 +2,7 @@
 :root {
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --action-duration: 320ms;
+  --architecture-frame-ratio: 20 / 11;
 }
 .brand-lockup {
   display: block;
@@ -31,8 +32,8 @@ h1 {
 }
 .button.primary {
   background: #fff8ef;
-  color: #994000;
-  border-color: #d46616;
+  color: var(--orange-text);
+  border-color: var(--orange);
   font-weight: 400;
   box-shadow: none;
 }
@@ -41,27 +42,12 @@ h1 {
   color: var(--ink);
   border-color: #858d7d;
 }
-.button:before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: currentColor;
-  opacity: 0.08;
-  transform: scaleX(0);
-  transform-origin: right;
-  transition: transform 0.45s var(--ease-out);
-  z-index: -1;
-}
-.button:hover:not(:disabled) {
-  background: #fff0e1;
-  color: #934000;
-  border-color: var(--orange);
-  box-shadow: 0 4px 12px #ec66080c;
-}
-.button:hover:not(:disabled):before,
-.button:focus-visible:before {
-  transform: scaleX(1);
-  transform-origin: left;
+@media (hover: hover) and (pointer: fine) {
+  .button:hover:not(:disabled) {
+    background: #fff0e1;
+    color: var(--orange-text);
+    border-color: var(--orange);
+  }
 }
 .button:active:not(:disabled) {
   box-shadow: none;
@@ -180,7 +166,7 @@ h1 {
     transform 0.4s var(--ease-out);
 }
 .layer-list button:hover .layer-number {
-  color: var(--orange-ink);
+  color: var(--orange-text);
 }
 .detail-panel {
   isolation: isolate;
@@ -195,7 +181,6 @@ h1 {
     radial-gradient(ellipse at 65% 22%, #e59a6330 0, transparent 42%),
     radial-gradient(ellipse at 30% 75%, #afc79418, transparent 46%);
   pointer-events: none;
-  animation: graphite-light 18s ease-in-out infinite alternate;
 }
 .detail-panel:after {
   content: "";
@@ -206,7 +191,6 @@ h1 {
   height: 1px;
   background: linear-gradient(90deg, transparent, #ffae70a0, transparent);
   pointer-events: none;
-  animation: graphite-edge 12s ease-in-out infinite alternate;
 }
 #layer-detail {
   position: relative;
@@ -283,13 +267,13 @@ h1 {
 }
 .model-pin {
   background: #fff;
-  color: #973f00;
-  border-color: #c96724;
+  color: var(--orange-text);
+  border-color: var(--orange);
   font-weight: 400;
   box-shadow: 0 3px 8px #2d3d1e18;
 }
 .model-pin:after {
-  border-left-color: #b15e23b0;
+  border-left-color: #ec6608b0;
 }
 .model-pin:before {
   box-shadow: 0 0 0 3px #ec66081a;
@@ -298,7 +282,7 @@ h1 {
   border-left: 0;
   padding-left: 0;
   background: transparent;
-  color: #794722;
+  color: var(--orange-text);
 }
 .presets button {
   transition:
@@ -315,31 +299,13 @@ h1 {
   transition: transform 0.45s var(--ease-out);
 }
 .explode-toggle:hover .stack-icon .ui-icon {
-  color: var(--orange);
+  color: var(--orange-text);
 }
 .explode-toggle:active .stack-icon .ui-icon {
-  color: var(--orange-ink);
+  color: var(--orange-text);
 }
-dialog::backdrop {
-  animation: backdrop-in 0.28s ease-out;
-}
-@keyframes graphite-light {
-  from {
-    transform: translate3d(-14px, -24px, 0) rotate(-5deg);
-  }
-  to {
-    transform: translate3d(25px, 35px, 0) rotate(8deg);
-  }
-}
-@keyframes graphite-edge {
-  from {
-    transform: translateX(0);
-    opacity: 0.45;
-  }
-  to {
-    transform: translateX(100px);
-    opacity: 1;
-  }
+dialog[data-fade]::backdrop {
+  animation: backdrop-in 200ms var(--ease-out);
 }
 @keyframes backdrop-in {
   from {
@@ -488,7 +454,7 @@ dialog::backdrop {
   }
 }
 
-/* Architectural gallery: complete supplied frames, quiet controls, no autoplay. */
+/* Architectural gallery. The lightbox shows the complete render. */
 .information {
   grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.5fr);
   gap: 32px;
@@ -511,7 +477,7 @@ dialog::backdrop {
   background: #fafaf6;
 }
 .gallery-stage {
-  aspect-ratio: 2/1;
+  aspect-ratio: var(--architecture-frame-ratio);
   position: relative;
   background: #e9ece6;
   touch-action: pan-y pinch-zoom;
@@ -534,7 +500,7 @@ dialog::backdrop {
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: contain;
+  object-fit: cover;
 }
 .gallery-open:focus-visible {
   outline-offset: -4px;
@@ -640,15 +606,16 @@ dialog::backdrop {
 .gallery-choices button[aria-pressed="true"] {
   border-color: #e2ba99;
   background: #fff3e8;
-  color: #8b3c05;
+  color: var(--orange-text);
 }
 .gallery-choices button:hover {
   border-color: #d6c9b7;
 }
 .gallery-choices img {
   width: 76px;
-  height: 38px;
-  object-fit: contain;
+  height: auto;
+  aspect-ratio: var(--architecture-frame-ratio);
+  object-fit: cover;
   flex-shrink: 0;
   border-radius: 1px;
 }
@@ -727,7 +694,6 @@ dialog::backdrop {
   }
   .gallery-choices img {
     width: 58px;
-    height: 29px;
   }
 }
 @media (max-width: 1024px) {
@@ -815,8 +781,6 @@ dialog::backdrop {
   }
   .gallery-choices img {
     width: 100%;
-    height: auto;
-    aspect-ratio: 2/1;
     margin-bottom: 5px;
   }
   .gallery-choices small {

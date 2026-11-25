@@ -22,13 +22,20 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
-      - run: npm run check
-      - run: npm test
-      - run: node tools/build-site.mjs /${{ github.event.repository.name }}/
       - uses: actions/configure-pages@v5
+      - name: Build and verify website
+        id: compile
+        env:
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          npm run build -- --base "/$REPOSITORY_NAME" --origin "https://$REPOSITORY_OWNER.github.io"
+          npm run check
+          npm test
+          node --input-type=module -e 'import { readFileSync } from "node:fs"; console.log("directory=" + JSON.parse(readFileSync("dist/current.json")).output)' >> "$GITHUB_OUTPUT"
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: ${{ steps.compile.outputs.directory }}
   deploy:
     needs: build
     runs-on: ubuntu-latest

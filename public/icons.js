@@ -1,4 +1,6 @@
 const paths = {
+  external: '<path d="M13 4h7v7m0-7-9 9m-1-7H5v13h13v-5"/>',
+  more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   link: '<path d="m10 8 2-2a4 4 0 0 1 6 6l-2 2M14 16l-2 2a4 4 0 0 1-6-6l2-2M9 15l6-6"/>',
   previous: '<path d="M6 5v14M17 5l-9 7 9 7V5Z"/>',
   arrow: '<path d="M7 17 17 7M7 7h10v10"/>',
